@@ -3,10 +3,7 @@
 #include <Wheels_Controller.h>
 #include <Consts.h>
 
-/*Replaces any previous function that was attached to the interrupt.
- Most Arduino boards have two external interrupts: numbers 0(on digital pin 2) 
- and 1 (on digital pin 3). The Arduino Mega has an additional four: 
- numbers 2 (pin 21), 3 (pin 20), 4 (pin 19), and 5 (pin 18). */
+//this code use wheel controller only to command the rover
 
 Measurements measurements;
 Wheels_Controller cntr; 

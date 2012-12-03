@@ -45,9 +45,9 @@ void Wheels_Controller::start_moving(int direction,unsigned long m1u1,unsigned l
 	}
 }
 
-void Wheels_Controller::set_freqs(unsigned long m1u1,unsigned long m2u1){
-	FREQ1[0]=m1u1;
-	FREQ1[1]=m2u1;
+void Wheels_Controller::set_freqs(float m1v,float m2v){
+	FREQ1[0]=(unsigned long)(m1v/consts.alpha);
+	FREQ1[1]=(unsigned long)(m2v/consts.alpha);
 }
 
 void Wheels_Controller::stop_moving(){
@@ -106,4 +106,12 @@ int Wheels_Controller::moveWheel1(struct pt *ptt){
 		flag[1]=false;
 	}
 	PT_END(ptt);
+}
+
+float Wheels_Controller::get_motor1_freq(){
+	return (float) consts.alpha*FREQ1[0];
+}
+
+float Wheels_Controller::get_motor2_freq(){
+	return (float) consts.alpha*FREQ1[1];
 }

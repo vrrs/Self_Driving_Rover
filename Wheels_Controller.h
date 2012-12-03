@@ -21,15 +21,20 @@ class Wheels_Controller{
 		void reset();
 		
 		Consts consts;
+	
 	public:
 		Wheels_Controller();
 		
 		static int DIRECTION;
 		static bool MOVING;
 		
+		//accessors
+		float get_motor1_freq();
+		float get_motor2_freq();
+		
 		//operations on the wheels
 		void start_moving(int direction,unsigned long m1u1,unsigned long m2u1);
-		void set_freqs(unsigned long m1u1,unsigned long m2u1);
+		void set_freqs(float m1u1,float m2u1);
 		void stop_moving();
 		void set_direction(int direction);
 		

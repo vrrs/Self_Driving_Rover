@@ -8,18 +8,17 @@ volatile int               Motion_Controller::path_size;
 volatile int               Motion_Controller::i;
 Wheels_Controller          Motion_Controller::wheels;
 struct pt                  Motion_Controller::ptPath;
+struct pt                  Motion_Controller::ptSpeed;
 volatile float             Motion_Controller::theta_p[2];
 volatile float             Motion_Controller::dist_p[2];
-//void                     Motion_Controller::end_path()
-//unsigned long            Motion_Controller::set_path(float,float,int)
 Consts                     Motion_Controller::consts;
-//float                    Motion_Controller::get_rotational_speed()
 
 Motion_Controller::Motion_Controller(){
 	PT_INIT(&ptPath);
+	PT_INIT(&ptSpeed);
 	path_size=10;
 	path_activate=false;
-	
+	speed_control_activated=true;
 	for(int i=0;i<path_size;i++){
 		theta_p[i]=0;
 		dist_p[i]=0;
@@ -48,31 +47,36 @@ Motion_Controller::Motion_Controller(){
 	*/
 //}
 
-//void Motion_Controller::schedule_speed_control(){
-	/*
-	while(control_activate){
-		wait_until(measurement.measurement_ready())
-		f_measured=measurement.get_freq();
-		err=fm-f_measured;
-		//modify here to be a pid controller
-		set fm()=fm+err
+void Motion_Controller::schedule_speed_control(){
+	if(speed_control_activated){
+		speed_control_thread(&ptSpeed);
 	}
-	*/
-//}
+}
 
-//static int speed_control_thread(struct pt* ptt){
-	/*
+int Motion_Controller::speed_control_thread(struct pt* ptt){
 	PT_BEGIN(ptt);
 	while(1){
-		wait_until(measurement_ready())
-		f_measured=measurement.get_freq();
-		err=fm-f_measured;
-		//modify here to be a pid controller
-		set fm()=fm+err
+		//wait until measurement is ready
+		PT_WAIT_UNTIL(ptt,measurements.PERIOD_FLAG[0] && measurements.PERIOD_FLAG[1]);
+		//get measured values
+		static unsigned long Tu1=measurements.CURRENT_PERIOD[0];
+		static unsigned long Tu2=measurements.CURRENT_PERIOD[1];
+		//get referenced values
+		static unsigned long u1=wheels.get_motor1_freq();
+		static unsigned long u2=wheels.get_motor2_freq();
+		
+	      //control algol([u1,Tu1],[u2,Tu2]){
+		static unsigned long err1=Tu1-u1;
+		static unsigned long err2=Tu2-u2;
+		u1=Tu1;
+		u2=Tu2;
+	      //}
+	       
+	       //set the new values
+		wheels.set_freqs(u1,u2);
 	}
 	PT_END(ptt);
-	*/
-//}
+}
 
 //Assume that a speed>0 has been scheduled.
 void Motion_Controller::schedule_path(){
@@ -138,7 +142,7 @@ void Motion_Controller::set_motor_linear_speed(float v1,float v2){
 	wheels.set_freqs(u1,u2);
 }
 
-//theta in radians, dist in meter
+//theta in radians, dist in micro meters
 unsigned long Motion_Controller::calculate(float dist,float theta){
 	static bool flag=theta > M_PI/2;
 	if(flag){

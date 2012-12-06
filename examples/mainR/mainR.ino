@@ -32,6 +32,7 @@ void setup(){
 void loop(){
 	cntr.wheels.schedule_wheel_motion();
 	cntr.schedule_path();
+	cntr.schedule_speed_control();	
 	
 	//activate path traveling
 	if(millis()-t0>dt){
@@ -40,10 +41,9 @@ void loop(){
 }
 
 void channelA1(){
-	measurements.channelA(Measurements::CA1_INTERRUPT,1);
+	cntr.measurements.channelA(Measurements::CA1_INTERRUPT,1);
 }
 
 void channelA2(){
-	measurements.channelA(Measurements::CA2_INTERRUPT,3);
+	cntr.measurements.channelA(Measurements::CA2_INTERRUPT,3);
 }
-

@@ -35,6 +35,7 @@ class Motion_Controller{
 		
 		static volatile int path_size;
 		static volatile int i;
+		static void set_motor_linear_speed(float v1,float v2);
 		
 	public:
 		//void accelerate(long t, float f);

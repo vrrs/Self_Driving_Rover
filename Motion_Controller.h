@@ -5,7 +5,7 @@
 #include <pt.h>
 #include <math.h>
 #include <Consts.h>
-//#include <Measurements.h>
+#include <Measurements.h>
 #include <Wheels_Controller.h>
 
 /* This motion controller moves the rover in linear and curvilinear motion by 
@@ -16,11 +16,12 @@ class Motion_Controller{
 	private:
 		//long t;
 		//static const int dt
-		
 		//static int acceleration_thread(struct pt* ptt);
-		//static int speed_control_thread(struct pt* ptt);
+		
+		
 		
 		static struct pt ptPath;
+		static struct pt ptSpeed;
 		static int path_thread(struct pt *ptt);
 		
 		static unsigned long calculate(float d,float angle);
@@ -36,21 +37,26 @@ class Motion_Controller{
 		static volatile int path_size;
 		static volatile int i;
 		static void set_motor_linear_speed(float v1,float v2);
+		static int speed_control_thread(struct pt* ptt);
+		
 		
 	public:
 		//void accelerate(long t, float f);
 		static Wheels_Controller wheels;
 		static Consts consts;
+		static Measurements measurements;
 		//Consts consts;
 		Motion_Controller();
 		static volatile float theta_p[2];
 		static volatile float dist_p[2];
 		static volatile unsigned long path_t;
 		
+		bool speed_control_activated;
 		bool path_activate;
 		
 		//void schedule_acceleration();
 		//void schedule_speed_control();
 		void schedule_path();	
+		void schedule_speed_control();
 };
 #endif

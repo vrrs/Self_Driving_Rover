@@ -21,7 +21,7 @@ void Measurements::channelA(int motor,int channelb){
 	}
 	if(++cnt[motor]==consts.NPPR){
 		cnt[motor]=0;
-		set_direction(digitalRead(consts.MOTOR_CHANNELS[channel]),digitalRead(consts.MOTOR_CHANNELS[channelb]),motor);
+		set_direction(digitalRead(consts.MOTOR_CHANNELS[channelb-1]),digitalRead(consts.MOTOR_CHANNELS[channelb]),motor);
 		CURRENT_PERIOD[motor]=millis()-startime[motor];
 		startime[motor]=millis();
 		

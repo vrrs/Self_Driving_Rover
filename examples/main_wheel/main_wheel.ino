@@ -23,11 +23,11 @@ void loop(){
 }
 
 void channelA1(){
-	measurements.channelA(Measurements::CA1_INTERRUPT,0);
+	measurements.channelA(Measurements::CA1_INTERRUPT,1);
 }
 
 void channelA2(){
-	measurements.channelA(Measurements::CA2_INTERRUPT,2);
+	measurements.channelA(Measurements::CA2_INTERRUPT,3);
 }
 
 

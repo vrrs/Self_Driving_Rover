@@ -115,8 +115,8 @@ float Motion_Controller::motor_linear_speed(){
 	static unsigned long u1=wheels.get_motor1_freq();
 	static unsigned long u2=wheels.get_motor2_freq();
 	//linear model for the periods. period_motor=T(period_given)
-	static float Tu1=consts.alpha0*u1+consts.alpha1;
-	static float Tu2=consts.alpha0*u2+consts.alpha1;
+	static float Tu1=consts.alpha0u1*u1+consts.alpha1u1;
+	static float Tu2=consts.alpha0u2*u2+consts.alpha1u2;
 	//speeds
 	static float v1=2*M_PI/Tu1;
 	static float v2=2*M_PI/Tu2;
@@ -126,6 +126,16 @@ float Motion_Controller::motor_linear_speed(){
 	else{
 		return v2;
 	}
+}
+
+void Motion_Controller::set_motor_linear_speed(float v1,float v2){
+	static float Tu1=2*M_PI/v1;
+	static float Tu2=2*M_PI/v2;
+	
+	static unsigned long u1=(unsigned long)((Tu1-consts.alpha1u1)/consts.alpha0u1);
+	static unsigned long u2=(unsigned long)((Tu2-consts.alpha1u2)/consts.alpha0u2);
+	
+	wheels.set_freqs(u1,u2);
 }
 
 //theta in radians, dist in meter
@@ -142,10 +152,10 @@ unsigned long Motion_Controller::calculate(float dist,float theta){
 	static float vm=vr+vt;
 	
 	if (flag){
-		wheels.set_freqs(vt,vm);
+		set_motor_linear_speed(vt,vm);
 	}
 	else{
-		wheels.set_freqs(vm,vt);
+		set_motor_linear_speed(vm,vt);
 	}
 	return t;
 }

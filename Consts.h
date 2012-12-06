@@ -23,8 +23,10 @@ class Consts{
 		const static float radius=0.054;
 		
 		//linear model param
-		const static float alpha0=0.00000486;
-		const static float alpha1=0;
+		const static float alpha0u1=0.00000486;
+		const static float alpha1u1=0;
+	        const static float alpha0u2=0.00000486;
+		const static float alpha1u2=0;
 		
 		int MOTOR_CHANNELS[4];
 		const static long PERIOD_CYCLE=1000L;

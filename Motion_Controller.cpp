@@ -12,6 +12,7 @@ struct pt                  Motion_Controller::ptSpeed;
 volatile float             Motion_Controller::theta_p[2];
 volatile float             Motion_Controller::dist_p[2];
 Consts                     Motion_Controller::consts;
+Measurements               Motion_Controller::measurements;
 
 Motion_Controller::Motion_Controller(){
 	PT_INIT(&ptPath);

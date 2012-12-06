@@ -36,7 +36,8 @@ Motion_Controller::Motion_Controller(){
 //}
 
 //void Motion_Controller::schedule_acceleration(){
-	/*while(accelerate_activate){
+	/*
+	while(accelerate_activate){
 		wait_until(millis()-dt0>=dt);
 		set fm()=fm+df;
 		if(h--==0){
@@ -48,7 +49,8 @@ Motion_Controller::Motion_Controller(){
 //}
 
 //void Motion_Controller::schedule_speed_control(){
-	/*while(control_activate){
+	/*
+	while(control_activate){
 		wait_until(measurement.measurement_ready())
 		f_measured=measurement.get_freq();
 		err=fm-f_measured;
@@ -59,7 +61,8 @@ Motion_Controller::Motion_Controller(){
 //}
 
 //static int speed_control_thread(struct pt* ptt){
-	/*PT_BEGIN(ptt);
+	/*
+	PT_BEGIN(ptt);
 	while(1){
 		wait_until(measurement_ready())
 		f_measured=measurement.get_freq();
@@ -78,9 +81,6 @@ void Motion_Controller::schedule_path(){
 	}
 }
 
-float Motion_Controller::get_rotational_speed(){
-	return (float) (consts.alpha)*(consts.rotational_freq);
-}
 
 int Motion_Controller::path_thread(struct pt* ptt){
 	PT_BEGIN(ptt);
@@ -111,49 +111,41 @@ unsigned long Motion_Controller::set_path(float d,float theta,int i){
 }
 
 float Motion_Controller::motor_linear_speed(){
-	static float f1=wheels.get_motor1_freq();
-	static float f2=wheels.get_motor2_freq();
-	if(f1>=f2){
-		return 2*M_PI*consts.radius*f1;
+	//get the periods 
+	static unsigned long u1=wheels.get_motor1_freq();
+	static unsigned long u2=wheels.get_motor2_freq();
+	//linear model for the periods. period_motor=T(period_given)
+	static float Tu1=consts.alpha0*u1+consts.alpha1;
+	static float Tu2=consts.alpha0*u2+consts.alpha1;
+	//speeds
+	static float v1=2*M_PI/Tu1;
+	static float v2=2*M_PI/Tu2;
+	if(v1>=v2){
+		return v1;
 	}
 	else{
-		return 2*M_PI*consts.radius*f2;
+		return v2;
 	}
 }
 
 //theta in radians, dist in meter
 unsigned long Motion_Controller::calculate(float dist,float theta){
-	static float vm=motor_linear_speed();
-	static unsigned long t;
-	static float vt;
-	if(theta!=M_PI/2){
-		static bool side=true;
-		if(theta>M_PI/2){
-			theta=M_PI-theta;
-			side=false;
-		}
-		
-		vt=vm-get_rotational_speed();
-		static float dist_t=sqrt(pow(dist*cos(theta)-consts.center_dist,2)+pow(dist*sin(theta),2));
-		t=(unsigned long)dist_t/vt;
-		
-		if (side){
-			wheels.set_freqs(vm,vt);
-		}
-		else{
-			wheels.set_freqs(vt,vm);
-		}
+	static bool flag=theta > M_PI/2;
+	if(flag){
+		theta=M_PI-theta;
+	}
+	
+	static float dist_pp=sqrt(pow(consts.center_dist,2)+pow(dist,2)-2*dist*consts.center_dist*cos(theta));
+	static float vt=motor_linear_speed();
+	static unsigned long t=(dist_pp-theta*consts.radius)/vt;
+	static float vr=theta*consts.radius/t;
+	static float vm=vr+vt;
+	
+	if (flag){
+		wheels.set_freqs(vt,vm);
 	}
 	else{
-	  t=(unsigned long) dist/vm;
+		wheels.set_freqs(vm,vt);
 	}
-	/*
-	Serial.print("vm:");
-	Serial.print(vm);
-	Serial.print(",vt:");
-	Serial.print(vt);
-	Serial.print(",t:");
-	Serial.println(t);
-	*/
 	return t;
 }

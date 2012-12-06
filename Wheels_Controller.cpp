@@ -44,10 +44,19 @@ void Wheels_Controller::start_moving(int direction,unsigned long m1u1,unsigned l
 		MOVING=true;
 	}
 }
-
-void Wheels_Controller::set_freqs(float m1v,float m2v){
-	FREQ1[0]=(unsigned long)(m1v/consts.alpha);
-	FREQ1[1]=(unsigned long)(m2v/consts.alpha);
+unsigned long Wheels_Controller::enforce_max_speed(unsigned long v){
+	if(v>consts.PERIOD_CYCLE){
+		return consts.PERIOD_CYCLE;
+	}
+	if(v<0L){
+		return 0L;
+	}
+	return v;
+}
+	
+void Wheels_Controller::set_freqs(unsigned long m1v,unsigned long m2v){
+	FREQ1[0]=enforce_max_speed(m1v);	
+	FREQ1[1]=enforce_max_speed(m2v);
 }
 
 void Wheels_Controller::stop_moving(){
@@ -56,7 +65,7 @@ void Wheels_Controller::stop_moving(){
 }
 
 void Wheels_Controller::reset(){
-	PERIOD=1000L;   //1 ms
+	PERIOD=consts.PERIOD_CYCLE; 
 	for(int i=0;i<2;i++){
 		FREQ1[i]=100L;
 		flag[i]=true;
@@ -108,10 +117,10 @@ int Wheels_Controller::moveWheel1(struct pt *ptt){
 	PT_END(ptt);
 }
 
-float Wheels_Controller::get_motor1_freq(){
-	return (float) consts.alpha*FREQ1[0];
+unsigned long Wheels_Controller::get_motor1_freq(){
+	return FREQ1[0];
 }
 
-float Wheels_Controller::get_motor2_freq(){
-	return (float) consts.alpha*FREQ1[1];
+unsigned long Wheels_Controller::get_motor2_freq(){
+	return FREQ1[1];
 }

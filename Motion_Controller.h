@@ -51,6 +51,5 @@ class Motion_Controller{
 		//void schedule_acceleration();
 		//void schedule_speed_control();
 		void schedule_path();	
-		static float get_rotational_speed();
 };
 #endif

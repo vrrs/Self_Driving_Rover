@@ -14,13 +14,12 @@ void setup(){
 	attachInterrupt(Measurements::CA2_INTERRUPT,channelA2,CHANGE);
 	
 	cntr.start_moving(consts.FORWARD,500L,500L);
-	
+	measurements.start_measuring();
 }
 
 
 void loop(){
 	cntr.schedule_wheel_motion();
-	measurements.scheduleChannelPolling();
 }
 
 void channelA1(){

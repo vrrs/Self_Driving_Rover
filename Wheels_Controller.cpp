@@ -1,126 +1,205 @@
 #include "Arduino.h"
-#include <Wheels_Controller.h>
+#include <Motion_Controller.h>
 
-struct pt                  Wheels_Controller::ptM1;
-struct pt                  Wheels_Controller::ptM2;
-volatile unsigned long	   Wheels_Controller::FREQ1[2];            
-volatile int               Wheels_Controller::PIN[2];
-volatile bool              Wheels_Controller::flag[2];
-volatile unsigned long     Wheels_Controller::startime[2];
-volatile unsigned long     Wheels_Controller::PERIOD;
-int                        Wheels_Controller::DIRECTION;
-bool                       Wheels_Controller::MOVING;
+volatile unsigned long     Motion_Controller::path_t;
+volatile unsigned long     Motion_Controller::t0;
+volatile bool              Motion_Controller::end_path_option;
+volatile int               Motion_Controller::path_size;
+volatile int               Motion_Controller::i;
+Wheels_Controller          Motion_Controller::wheels;
+struct pt                  Motion_Controller::ptPath;
+struct pt                  Motion_Controller::ptSpeed;
+struct pt                  Motion_Controller::ptAccelerate;
+volatile float             Motion_Controller::theta_p[2];
+volatile float             Motion_Controller::dist_p[2];
+volatile float             Motion_Controller::dv;
+volatile unsigned long     Motion_Controller::dt;
+volatile unsigned long     Motion_Controller::tt0;
+volatile int               Motion_Controller::n;
+Consts                     Motion_Controller::consts;
+Measurements               Motion_Controller::measurements;
+volatile bool 		   Motion_Controller::accelerate_activate;
 
-Wheels_Controller::Wheels_Controller(){
-	PT_INIT(&ptM1); 
-	PT_INIT(&ptM2); 
+Motion_Controller::Motion_Controller(){
+	PT_INIT(&ptPath);
+	PT_INIT(&ptSpeed);
+	PT_INIT(&ptAccelerate);
+	path_size=10;
+	path_activate=false;
+	speed_control_activated=true;
+	for(int i=0;i<path_size;i++){
+		theta_p[i]=0;
+		dist_p[i]=0;
+	}
 	
-	reset();
 }
 
-void Wheels_Controller::set_direction(int direction){
-	Wheels_Controller::DIRECTION=direction;
-	int pin1=0;
-	int pin2=0;
-	if(direction==consts.FORWARD){
-			pin1=consts.MOTOR1_CLOCKWISE;
-			pin2=consts.MOTOR2_COUNTERCLOCKWISE;
+
+//acceleration section {
+void Motion_Controller::accelerate(unsigned long t,float vf){
+	float v0=motor_linear_speed();
+	n=consts.NUMBER_PARTITIONS_INTERVAL;
+	
+	dv=(vf-v0)/n;
+	dt=(unsigned long) t/n;
+	tt0=millis();
+	accelerate_activate=true;   //fire event
+}
+
+int Motion_Controller::accelerate_thread(struct pt* ptt){
+	PT_BEGIN(ptt);
+	while(1){
+		PT_WAIT_UNTIL(ptt,millis()-t0>=dt);
+		add_motor_speed(dv);
+		if(--n<0){
+			accelerate_activate=false;
+		}
+		tt0=millis();
+	}
+	PT_END(ptt);
+}
+void Motion_Controller::schedule_acceleration(){
+	if(accelerate_activate){
+		accelerate_thread(&ptAccelerate);
+	}
+}
+//}
+
+//speed section{ 
+void Motion_Controller::schedule_speed_control(){
+	if(speed_control_activated){
+		speed_control_thread(&ptSpeed);
+	}
+}
+
+int Motion_Controller::speed_control_thread(struct pt* ptt){
+	PT_BEGIN(ptt);
+	while(1){
+		//wait until measurement is ready
+		PT_WAIT_UNTIL(ptt,measurements.PERIOD_FLAG[0] && measurements.PERIOD_FLAG[1]);
+		//get measured values
+		static unsigned long Tu1=measurements.CURRENT_PERIOD[0];
+		static unsigned long Tu2=measurements.CURRENT_PERIOD[1];
+		//get referenced values
+		static unsigned long u1=wheels.get_motor1_freq();
+		static unsigned long u2=wheels.get_motor2_freq();
+		
+	      //control algol([u1,Tu1],[u2,Tu2]){
+		static unsigned long err1=Tu1-u1;
+		static unsigned long err2=Tu2-u2;
+		u1=Tu1;
+		u2=Tu2;
+	      //}
+	       
+	       //set the new values
+		wheels.set_freqs(u1,u2);
+	}
+	PT_END(ptt);
+}
+
+//Assume that a speed>0 has been scheduled.
+void Motion_Controller::schedule_path(){
+	if(path_activate && i<path_size){
+		path_thread(&ptPath);
+	}
+}
+
+
+int Motion_Controller::path_thread(struct pt* ptt){
+	PT_BEGIN(ptt);
+	while(1){
+		t0=millis();
+		path_t=set_path(dist_p[i],theta_p[i],i);
+		i++;
+		PT_WAIT_UNTIL(ptt,millis()-t0>=path_t);
+		end_path();
+	}
+	PT_END(ptt);
+}
+
+void Motion_Controller::end_path(){
+	if(end_path_option){
+		wheels.stop_moving();
+	}
+}
+
+unsigned long Motion_Controller::set_path(float d,float theta,int i){
+	if(path_size-i==1){
+		end_path_option=true;
 	}
 	else{
-		if(direction==consts.BACKWARD){
-			pin2=Wheels_Controller::consts.MOTOR2_CLOCKWISE;
-			pin1=Wheels_Controller::consts.MOTOR1_COUNTERCLOCKWISE;
-		}
+		end_path_option=false;
 	}
-	Wheels_Controller::PIN[0]=pin1;
-	Wheels_Controller::PIN[1]=pin2;
+	return calculate(d,theta);
 }
 
-void Wheels_Controller::start_moving(int direction,unsigned long m1u1,unsigned long m2u1){
-	if(!MOVING){
-		FREQ1[0]=m1u1;
-		FREQ1[1]=m2u1;
-		set_direction(direction);
-		MOVING=true;
+float Motion_Controller::motor_linear_speed(){
+	//get the periods 
+	static unsigned long u1=wheels.get_motor1_freq();
+	static unsigned long u2=wheels.get_motor2_freq();
+	//linear model for the periods. period_motor=T(period_given)
+	static float Tu1=consts.alpha0u1*u1+consts.alpha1u1;
+	static float Tu2=consts.alpha0u2*u2+consts.alpha1u2;
+	//speeds
+	static float v1=2*M_PI/Tu1;
+	static float v2=2*M_PI/Tu2;
+	if(v1>=v2){
+		return v1;
+	}
+	else{
+		return v2;
 	}
 }
-unsigned long Wheels_Controller::enforce_max_speed(unsigned long v){
-	if(v>consts.PERIOD_CYCLE){
-		return consts.PERIOD_CYCLE;
-	}
-	if(v<0L){
-		return 0L;
-	}
-	return v;
-}
+
+void Motion_Controller::set_motor_linear_speed(float v1,float v2){
+	static float Tu1=2*M_PI/v1;
+	static float Tu2=2*M_PI/v2;
 	
-void Wheels_Controller::set_freqs(unsigned long m1v,unsigned long m2v){
-	FREQ1[0]=enforce_max_speed(m1v);	
-	FREQ1[1]=enforce_max_speed(m2v);
+	static unsigned long u1=(unsigned long)((Tu1-consts.alpha1u1)/consts.alpha0u1);
+	static unsigned long u2=(unsigned long)((Tu2-consts.alpha1u2)/consts.alpha0u2);
+	
+	wheels.set_freqs(u1,u2);
 }
 
-void Wheels_Controller::stop_moving(){
-	MOVING=false;
-	reset();
+void Motion_Controller::add_motor_speed(float dv){
+	//get the periods 
+	static unsigned long u1=wheels.get_motor1_freq();
+	static unsigned long u2=wheels.get_motor2_freq();
+	//linear model for the periods. period_motor=T(period_given)
+	static float Tu1=consts.alpha0u1*u1+consts.alpha1u1;
+	static float Tu2=consts.alpha0u2*u2+consts.alpha1u2;
+	//speeds
+	static float v1=2*M_PI/Tu1+dv;
+	static float v2=2*M_PI/Tu2+dv;
+	
+	//set the new speed
+	Tu1=2*M_PI/v1;
+	Tu2=2*M_PI/v2;
+	
+	u1=(unsigned long)((Tu1-consts.alpha1u1)/consts.alpha0u1);
+	u2=(unsigned long)((Tu2-consts.alpha1u2)/consts.alpha0u2);
+	
+	wheels.set_freqs(u1,u2);
 }
 
-void Wheels_Controller::reset(){
-	PERIOD=consts.PERIOD_CYCLE; 
-	for(int i=0;i<2;i++){
-		FREQ1[i]=100L;
-		flag[i]=true;
-		startime[i]=0L;
+//theta in radians, dist in micro meters
+unsigned long Motion_Controller::calculate(float dist,float theta){
+	static bool flag=theta > M_PI/2;
+	if(flag){
+		theta=M_PI-theta;
 	}
-	MOVING=false;
-	DIRECTION=consts.FORWARD;
-
-}
-
-void Wheels_Controller::schedule_wheel_motion(){
-	if(MOVING){
-		moveWheel0(&ptM1);
-		moveWheel1(&ptM2);
+	
+	static float dist_pp=sqrt(pow(consts.center_dist,2)+pow(dist,2)-2*dist*consts.center_dist*cos(theta));
+	static float vt=motor_linear_speed();
+	static unsigned long t=(dist_pp-theta*consts.radius)/vt;
+	static float vr=theta*consts.radius/t;
+	static float vm=vr+vt;
+	
+	if (flag){
+		set_motor_linear_speed(vt,vm);
 	}
-}
-
-int Wheels_Controller::moveWheel0(struct pt *ptt){
-	PT_BEGIN(ptt);
-	while(1){
-		PT_WAIT_UNTIL(ptt,flag[0] || (( micros() - startime[0]) > (PERIOD - FREQ1[0] )));
-		if (!flag[0])	{
-			startime[0]=micros();
-			flag[0]=true;
-		}
-		digitalWrite(PIN[0],HIGH);
-		PT_WAIT_UNTIL(ptt, (micros() - startime[0]) > FREQ1[0]);
-		digitalWrite(PIN[0],LOW);
-		startime[0]=micros();
-		flag[0]=false;
+	else{
+		set_motor_linear_speed(vm,vt);
 	}
-	PT_END(ptt);
-}
-
-int Wheels_Controller::moveWheel1(struct pt *ptt){
-	PT_BEGIN(ptt);
-	while(1){
-		PT_WAIT_UNTIL(ptt,flag[1] || ( (micros() - startime[1]) > (PERIOD - FREQ1[1]) ));
-		if (!flag[1])	{
-			startime[1]=micros();
-			flag[1]=true;
-		}
-		digitalWrite(PIN[1],HIGH);
-		PT_WAIT_UNTIL(ptt, (micros() - startime[1]) > FREQ1[1]);
-		digitalWrite(PIN[1],LOW);
-		startime[1]=micros();
-		flag[1]=false;
-	}
-	PT_END(ptt);
-}
-
-unsigned long Wheels_Controller::get_motor1_freq(){
-	return FREQ1[0];
-}
-
-unsigned long Wheels_Controller::get_motor2_freq(){
-	return FREQ1[1];
+	return t;
 }

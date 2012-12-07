@@ -14,23 +14,29 @@
 
 class Motion_Controller{
 	private:
-		//long t;
-		//static const int dt
-		//static int acceleration_thread(struct pt* ptt);
 		
-		
-		
+		static int accelerate_thread(struct *ptt);
+		static void add_motor_speed(float dv);
+
 		static struct pt ptPath;
 		static struct pt ptSpeed;
+		static struct pt ptAccelerate;
 		static int path_thread(struct pt *ptt);
 		
 		static unsigned long calculate(float d,float angle);
 		static float motor_linear_speed();
 		
 		static volatile unsigned long t0;
+		static volatile unsigned long tt0;
+		static volatile unsigned long dt;
+		static volatile int n;
+		static volatile float dv;
+		
 		static unsigned long set_path(float d,float angle,int k);
 		
 		static volatile bool end_path_option;
+		
+		static volatile bool accelerate_activate;
 		
 		static void end_path();
 		
@@ -54,9 +60,11 @@ class Motion_Controller{
 		bool speed_control_activated;
 		bool path_activate;
 		
-		//void schedule_acceleration();
-		//void schedule_speed_control();
+		static void accelerate(unsigned long t,float vf);
+		
+		
 		void schedule_path();	
 		void schedule_speed_control();
+		void schedule_acceleration();
 };
 #endif

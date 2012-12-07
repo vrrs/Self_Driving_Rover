@@ -9,14 +9,21 @@ volatile int               Motion_Controller::i;
 Wheels_Controller          Motion_Controller::wheels;
 struct pt                  Motion_Controller::ptPath;
 struct pt                  Motion_Controller::ptSpeed;
+struct pt                  Motion_Controller::ptAccelerate;
 volatile float             Motion_Controller::theta_p[2];
 volatile float             Motion_Controller::dist_p[2];
+volatile float             Motion_Controller::dv;
+volatile unsigned long     Motion_Controller::dt;
+volatile unsigned long     Motion_Controller::t0;
+volatile int               Motion_Controller::n;
 Consts                     Motion_Controller::consts;
 Measurements               Motion_Controller::measurements;
+volatile bool 		   Motion_Controller::accelerate_activate;
 
 Motion_Controller::Motion_Controller(){
 	PT_INIT(&ptPath);
 	PT_INIT(&ptSpeed);
+	PT_INIT(&ptAccelerate);
 	path_size=10;
 	path_activate=false;
 	speed_control_activated=true;
@@ -27,27 +34,38 @@ Motion_Controller::Motion_Controller(){
 	
 }
 
-//void Motion_Controller::accelerate(t,ff){
-	/*h=round(t/dt-1);
-	df=(ff-fm)/h;
-	accelerate_activate=true   //fire event
-	dt0=millis();
-	*/
-//}
 
-//void Motion_Controller::schedule_acceleration(){
-	/*
-	while(accelerate_activate){
-		wait_until(millis()-dt0>=dt);
-		set fm()=fm+df;
-		if(h--==0){
+//acceleration section {
+void Motion_Controller::accelerate(unsigned long t,float vf){
+	float v0=motor_linear_speed();
+	n=consts.NUMBER_PARTITIONS_INTERVAL;
+	
+	dv=(vf-v0)/n;
+	dt=(unsigned long) t/n;
+	t0=millis();
+	accelerate_activate=true   //fire event
+}
+
+void Motion_Controller::accelerate_thread(struct *ptt){
+	PT_BEGIN(ptt);
+	while(1){
+		wait_until(millis()-t0>=dt);
+		add_motor_speed(dv);
+		if(--n<0){
 			accelerate_activate=false;
 		}
-		dt0=millis();
+		t0=millis();
 	}
-	*/
+	PT_END(ptt);
+}
+void Motion_Controller::schedule_acceleration(){
+	if(accelerate_activate){
+		accelerate_thread(&ptAccelerate);
+	}
+}
 //}
 
+//speed section{ 
 void Motion_Controller::schedule_speed_control(){
 	if(speed_control_activated){
 		speed_control_thread(&ptSpeed);
@@ -139,6 +157,27 @@ void Motion_Controller::set_motor_linear_speed(float v1,float v2){
 	
 	static unsigned long u1=(unsigned long)((Tu1-consts.alpha1u1)/consts.alpha0u1);
 	static unsigned long u2=(unsigned long)((Tu2-consts.alpha1u2)/consts.alpha0u2);
+	
+	wheels.set_freqs(u1,u2);
+}
+
+void Motion_Controller::add_motor_speed(float dv){
+	//get the periods 
+	static unsigned long u1=wheels.get_motor1_freq();
+	static unsigned long u2=wheels.get_motor2_freq();
+	//linear model for the periods. period_motor=T(period_given)
+	static float Tu1=consts.alpha0u1*u1+consts.alpha1u1;
+	static float Tu2=consts.alpha0u2*u2+consts.alpha1u2;
+	//speeds
+	static float v1=2*M_PI/Tu1+dv;
+	static float v2=2*M_PI/Tu2+dv;
+	
+	//set the new speed
+	Tu1=2*M_PI/v1;
+	Tu2=2*M_PI/v2;
+	
+	u1=(unsigned long)((Tu1-consts.alpha1u1)/consts.alpha0u1);
+	u2=(unsigned long)((Tu2-consts.alpha1u2)/consts.alpha0u2);
 	
 	wheels.set_freqs(u1,u2);
 }

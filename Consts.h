@@ -32,6 +32,8 @@ class Consts{
 		const static long PERIOD_CYCLE=1000L;
 		const static int NPPR=32;
 		
+		const static int NUMBER_PARTITIONS_INTERVAL=1000;
+		
 		const static int FORWARD=1;
 		const static int BACKWARD=2;
 };

@@ -15,7 +15,7 @@
 class Motion_Controller{
 	private:
 		
-		static int accelerate_thread(struct *ptt);
+		static int accelerate_thread(struct pt* ptt);
 		static void add_motor_speed(float dv);
 
 		static struct pt ptPath;

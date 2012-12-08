@@ -25,7 +25,7 @@ class Consts{
 		//linear model param
 		const static float alpha0u1=0.00000486;
 		const static float alpha1u1=0;
-	        const static float alpha0u2=0.00000486;
+	    const static float alpha0u2=0.00000486;
 		const static float alpha1u2=0;
 		
 		int MOTOR_CHANNELS[4];
@@ -33,7 +33,10 @@ class Consts{
 		const static int NPPR=32;
 		
 		const static int NUMBER_PARTITIONS_INTERVAL=1000;
-		
+		const static int ULTRASONIC_SENSOR0=26;
+		const static int ULTRASONIC_SENSOR1=27;
+		const static int ULTRASONIC_SENSOR2=28;
+		const static int SENSE_INTERVAL=20; //microseconds
 		const static int FORWARD=1;
 		const static int BACKWARD=2;
 };

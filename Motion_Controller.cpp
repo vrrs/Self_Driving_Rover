@@ -14,7 +14,7 @@ volatile float             Motion_Controller::theta_p[2];
 volatile float             Motion_Controller::dist_p[2];
 volatile float             Motion_Controller::dv;
 volatile unsigned long     Motion_Controller::dt;
-volatile unsigned long     Motion_Controller::t0;
+volatile unsigned long     Motion_Controller::tt0;
 volatile int               Motion_Controller::n;
 Consts                     Motion_Controller::consts;
 Measurements               Motion_Controller::measurements;
@@ -42,19 +42,19 @@ void Motion_Controller::accelerate(unsigned long t,float vf){
 	
 	dv=(vf-v0)/n;
 	dt=(unsigned long) t/n;
-	t0=millis();
-	accelerate_activate=true   //fire event
+	tt0=millis();
+	accelerate_activate=true;   //fire event
 }
 
-void Motion_Controller::accelerate_thread(struct *ptt){
+int Motion_Controller::accelerate_thread(struct pt* ptt){
 	PT_BEGIN(ptt);
 	while(1){
-		wait_until(millis()-t0>=dt);
+		PT_WAIT_UNTIL(ptt,millis()-t0>=dt);
 		add_motor_speed(dv);
 		if(--n<0){
 			accelerate_activate=false;
 		}
-		t0=millis();
+		tt0=millis();
 	}
 	PT_END(ptt);
 }

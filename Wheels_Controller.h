@@ -27,7 +27,7 @@ class Wheels_Controller{
 		Wheels_Controller();
 		
 		static int DIRECTION;
-		static bool MOVING;
+		static volatile bool MOVING;
 		
 		//accessors
 		unsigned long get_motor1_freq();

@@ -28,7 +28,7 @@ class Measurements{
 		static int sensor1thread(struct pt *ptt); 
 		static int sensor2thread(struct pt *ptt); 
 		
-		bool measuring;
+		volatile bool measuring;
 		
 	public:
 		Measurements();

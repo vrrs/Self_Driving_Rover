@@ -9,7 +9,7 @@ volatile bool              Wheels_Controller::flag[2];
 volatile unsigned long     Wheels_Controller::startime[2];
 volatile unsigned long     Wheels_Controller::PERIOD;
 int                        Wheels_Controller::DIRECTION;
-bool                       Wheels_Controller::MOVING;
+volatile bool              Wheels_Controller::MOVING;
 
 Wheels_Controller::Wheels_Controller(){
 	PT_INIT(&ptM1); 

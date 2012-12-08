@@ -61,7 +61,6 @@ void Wheels_Controller::set_freqs(unsigned long m1v,unsigned long m2v){
 
 void Wheels_Controller::stop_moving(){
 	MOVING=false;
-	reset();
 }
 
 void Wheels_Controller::reset(){
@@ -80,6 +79,11 @@ void Wheels_Controller::schedule_wheel_motion(){
 	if(MOVING){
 		moveWheel0(&ptM1);
 		moveWheel1(&ptM2);
+	}
+	else{
+		digitalWrite(PIN[0],LOW);
+		digitalWrite(PIN[1],LOW);
+		reset();
 	}
 }
 

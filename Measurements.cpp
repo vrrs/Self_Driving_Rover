@@ -37,7 +37,7 @@ Measurements::Measurements(){
 }
 
 void Measurements::channelA(int motor,int channelb){
-	if(cnt[motor]==0){
+	if(cnt[motor]==4){
 		PERIOD_FLAG[motor]=false;
 	}
 	if(++cnt[motor]==consts.NPPR){

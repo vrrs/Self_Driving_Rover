@@ -30,7 +30,7 @@ class Consts{
 		
 		int MOTOR_CHANNELS[4];
 		const static unsigned long PERIOD_CYCLE=1000L;
-		const static int NPPR=32;
+		const static int NPPR=64;
 		
 		const static int NUMBER_PARTITIONS_INTERVAL=1000;
 		const static int ULTRASONIC_SENSOR0=26;

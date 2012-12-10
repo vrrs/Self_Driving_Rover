@@ -2,8 +2,6 @@
 
 Motion_Controller cntr;
 
-unsigned long t0;
-
 //initial interval before turning
 const unsigned long dt=10000;
 
@@ -14,8 +12,6 @@ void setup(){
 	
         //delay before moving
 	delay(2000);
-
-        t0=millis();
 
       //set up path in polar coordinates
 	cntr.theta_p[0]=M_PI/4;

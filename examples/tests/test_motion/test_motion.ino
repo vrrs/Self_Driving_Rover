@@ -13,11 +13,9 @@ void setup(){
 	attachInterrupt(Measurements::CA2_INTERRUPT,channelA2,CHANGE);
 	
         //delay before moving
-	delay(10000);
+	delay(2000);
 
-        //start moving in straight line
-	cntr.wheels.start_moving(cntr.consts.FORWARD,500L,500L);
-	t0=millis();
+        t0=millis();
 
       //set up path in polar coordinates
 	cntr.theta_p[0]=M_PI/4;

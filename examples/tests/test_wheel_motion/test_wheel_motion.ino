@@ -29,22 +29,28 @@ void setup(){
 
 void loop(){
 	cntr.schedule_wheel_motion();
-//	measurements.schedule_sensors();
 	
+	//measurements.schedule_sensors();
+	
+	//stop the car after 10 s
 	if(millis()-t0>10000 && flag[0]){
 		cntr.stop_moving();
 		flag[0]=false;
 	}
+
+	//start moving the car after 13 s
 	if(millis()-t0>13000 && flag[1]){
 		cntr.start_moving(consts.FORWARD,300L,300L);
 		flag[1]=false;
 	}
+
+	//start turning after 20 s to the left
 	if(millis()-t0>20000 && flag[2]){
-  		cntr.stop_moving();
-		cntr.start_moving(consts.FORWARD,400L,450L);
+		cntr.set_freqs(400L,500L);
 		flag[2]=false;
 	}
-	if(millis()-t0>22000){
+	//stop the car after 30 s
+	if(millis()-t0>30000){
 		cntr.stop_moving();
 	}
 }

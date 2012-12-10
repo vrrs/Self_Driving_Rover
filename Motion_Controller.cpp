@@ -5,7 +5,6 @@
 
 volatile unsigned long     Motion_Controller::path_t;
 volatile unsigned long     Motion_Controller::t0;
-volatile bool              Motion_Controller::end_path_option;
 volatile int               Motion_Controller::path_size;
 volatile int               Motion_Controller::i;
 Wheels_Controller          Motion_Controller::wheels;
@@ -20,7 +19,7 @@ volatile unsigned long     Motion_Controller::tt0;
 volatile int               Motion_Controller::n;
 Consts                     Motion_Controller::consts;
 Measurements               Motion_Controller::measurements;
-volatile bool 		       Motion_Controller::accelerate_activate;
+volatile bool 		   Motion_Controller::accelerate_activate;
 
 Motion_Controller::Motion_Controller(){
 	PT_INIT(&ptPath);
@@ -52,7 +51,7 @@ void Motion_Controller::accelerate(unsigned long t,float vf){
 int Motion_Controller::accelerate_thread(struct pt* ptt){
 	PT_BEGIN(ptt);
 	while(1){
-		PT_WAIT_UNTIL(ptt,millis()-t0>=dt);
+		PT_WAIT_UNTIL(ptt,millis()-tt0>=dt);
 		add_motor_speed(dv);
 		if(--n<0){
 			accelerate_activate=false;
@@ -69,7 +68,7 @@ void Motion_Controller::schedule_acceleration(){
 }
 //}
 
-//speed section{ 
+//speed regulator section{ 
 void Motion_Controller::schedule_speed_control(){
 	if(speed_control_activated){
 		speed_control_thread(&ptSpeed);
@@ -106,7 +105,8 @@ int Motion_Controller::speed_control_thread(struct pt* ptt){
 
 //Assume that a speed>0 has been scheduled.
 void Motion_Controller::schedule_path(){
-	if(path_activate && i<path_size){
+	if(path_activate){
+		t0=millis();
 		path_thread(&ptPath);
 	}
 }
@@ -115,29 +115,18 @@ void Motion_Controller::schedule_path(){
 int Motion_Controller::path_thread(struct pt* ptt){
 	PT_BEGIN(ptt);
 	while(1){
-		t0=millis();
-		path_t=set_path(dist_p[i],theta_p[i],i);
+		PT_WAIT_UNTIL(ptt,millis()-t0>=path_t && path_activate);
+		if(path_size==i){
+			//stop the rover
+			wheels.stop_moving();
+			path_activate=false;
+		}
+		else{
+			path_t=calculate(dist_p[i],theta_p[i]);
+		}
 		i++;
-		PT_WAIT_UNTIL(ptt,millis()-t0>=path_t);
-		end_path();
 	}
 	PT_END(ptt);
-}
-
-void Motion_Controller::end_path(){
-	if(end_path_option){
-		wheels.stop_moving();
-	}
-}
-
-unsigned long Motion_Controller::set_path(float d,float theta,int i){
-	if(path_size-i==1){
-		end_path_option=true;
-	}
-	else{
-		end_path_option=false;
-	}
-	return calculate(d,theta);
 }
 
 //return speed km/s
@@ -149,8 +138,8 @@ float Motion_Controller::motor_linear_speed(){
 	static float Tu1=consts.alpha0u1*u1+consts.alpha1u1;
 	static float Tu2=consts.alpha0u2*u2+consts.alpha1u2;
 	//speeds
-	static float v1=2*M_PI/Tu1;
-	static float v2=2*M_PI/Tu2;
+	static float v1=2*M_PI*consts.radius/Tu1;
+	static float v2=2*M_PI*consts.radius/Tu2;
 	if(v1>=v2){
 		return v1;
 	}

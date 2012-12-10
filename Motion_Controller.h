@@ -45,24 +45,26 @@ class Motion_Controller{
 		static void set_motor_linear_speed(float v1,float v2);
 		static int speed_control_thread(struct pt* ptt);
 		
-		
 	public:
-		//void accelerate(long t, float f);
+		Motion_Controller();
+		
+		//Software layers
 		static Wheels_Controller wheels;
 		static Consts consts;
 		static Measurements measurements;
-		//Consts consts;
-		Motion_Controller();
-		static volatile float theta_p[2];
-		static volatile float dist_p[2];
+		
+		static volatile float theta_p[5];
+		static volatile float dist_p[5];
 		static volatile unsigned long path_t;
 		
-		bool speed_control_activated;
+		//control flags. Fire up the controls.
 		bool path_activate;
+		bool speed_control_activated;
 		
+		//operations on the motion
 		static void accelerate(unsigned long t,float vf);
 		
-		
+		//schedulers
 		void schedule_path();	
 		void schedule_speed_control();
 		void schedule_acceleration();

@@ -20,6 +20,7 @@ volatile int               Motion_Controller::n;
 Consts                     Motion_Controller::consts;
 Measurements               Motion_Controller::measurements;
 volatile bool 		   Motion_Controller::accelerate_activate;
+volatile bool 		   Motion_Controller::speed_changed;
 
 Motion_Controller::Motion_Controller(){
 	PT_INIT(&ptPath);
@@ -99,6 +100,9 @@ int Motion_Controller::speed_control_thread(struct pt* ptt){
 	       
 	    //set the new values
 		wheels.set_freqs(u1,u2);
+		speed_changed=true;
+		measurements.PERIOD_FLAG[0]=false;
+		measurements.PERIOD_FLAG[1]=false;
 	}
 	PT_END(ptt);
 }
@@ -114,15 +118,25 @@ void Motion_Controller::schedule_path(){
 
 int Motion_Controller::path_thread(struct pt* ptt){
 	PT_BEGIN(ptt);
+	static float dist_set=0;
 	while(1){
-		PT_WAIT_UNTIL(ptt,millis()-t0>=path_t && path_activate);
+		PT_WAIT_UNTIL(ptt,millis()-t0>=path_t && path_activate || speed_changed);
+		if(speed_changed){
+			dist_set=dist_p[i]-motor_linear_speed()*(millis()-t0);
+			i--;
+			speed_changed=false;
+		}
+		else{
+			dist_set=dist_p[i];
+		}
 		if(path_size==i){
 			//stop the rover
 			wheels.stop_moving();
 			path_activate=false;
 		}
 		else{
-			path_t=calculate(dist_p[i],theta_p[i]);
+			path_t=calculate(dist_set,theta_p[i]);
+			t0=millis();
 		}
 		i++;
 	}

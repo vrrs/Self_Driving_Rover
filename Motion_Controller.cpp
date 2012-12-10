@@ -1,5 +1,7 @@
 #include "Arduino.h"
 #include <Motion_Controller.h>
+ 
+// Linear model assumes u in microseconds and Tu in ms. Speed is set and return in km/s.
 
 volatile unsigned long     Motion_Controller::path_t;
 volatile unsigned long     Motion_Controller::t0;
@@ -10,23 +12,24 @@ Wheels_Controller          Motion_Controller::wheels;
 struct pt                  Motion_Controller::ptPath;
 struct pt                  Motion_Controller::ptSpeed;
 struct pt                  Motion_Controller::ptAccelerate;
-volatile float             Motion_Controller::theta_p[2];
-volatile float             Motion_Controller::dist_p[2];
+volatile float             Motion_Controller::theta_p[5];
+volatile float             Motion_Controller::dist_p[5];
 volatile float             Motion_Controller::dv;
 volatile unsigned long     Motion_Controller::dt;
 volatile unsigned long     Motion_Controller::tt0;
 volatile int               Motion_Controller::n;
 Consts                     Motion_Controller::consts;
 Measurements               Motion_Controller::measurements;
-volatile bool 		   Motion_Controller::accelerate_activate;
+volatile bool 		       Motion_Controller::accelerate_activate;
 
 Motion_Controller::Motion_Controller(){
 	PT_INIT(&ptPath);
 	PT_INIT(&ptSpeed);
 	PT_INIT(&ptAccelerate);
-	path_size=10;
+	path_size=5;
 	path_activate=false;
 	speed_control_activated=true;
+	wheels.set_freqs(consts.default_initial_speed,consts.default_initial_speed);
 	for(int i=0;i<path_size;i++){
 		theta_p[i]=0;
 		dist_p[i]=0;
@@ -58,6 +61,7 @@ int Motion_Controller::accelerate_thread(struct pt* ptt){
 	}
 	PT_END(ptt);
 }
+
 void Motion_Controller::schedule_acceleration(){
 	if(accelerate_activate){
 		accelerate_thread(&ptAccelerate);
@@ -72,26 +76,29 @@ void Motion_Controller::schedule_speed_control(){
 	}
 }
 
+//
 int Motion_Controller::speed_control_thread(struct pt* ptt){
 	PT_BEGIN(ptt);
 	while(1){
 		//wait until measurement is ready
 		PT_WAIT_UNTIL(ptt,measurements.PERIOD_FLAG[0] && measurements.PERIOD_FLAG[1]);
-		//get measured values
+		//get measured values, time period that each wheel takes to turn a revolution, in ms
 		static unsigned long Tu1=measurements.CURRENT_PERIOD[0];
 		static unsigned long Tu2=measurements.CURRENT_PERIOD[1];
-		//get referenced values
+		//get referenced values in microseconds
 		static unsigned long u1=wheels.get_motor1_freq();
 		static unsigned long u2=wheels.get_motor2_freq();
 		
-	      //control algol([u1,Tu1],[u2,Tu2]){
+	   //control algol([u1,Tu1],[u2,Tu2]){
 		static unsigned long err1=Tu1-u1;
 		static unsigned long err2=Tu2-u2;
-		u1=Tu1;
-		u2=Tu2;
-	      //}
+		static unsigned long du1=(err1-consts.alpha1u1)/consts.alpha0u1;
+		static unsigned long du2=(err2-consts.alpha1u2)/consts.alpha0u2;
+		u1=du1+u1;
+		u2=du2+u2;
+	   //}
 	       
-	       //set the new values
+	    //set the new values
 		wheels.set_freqs(u1,u2);
 	}
 	PT_END(ptt);
@@ -133,6 +140,7 @@ unsigned long Motion_Controller::set_path(float d,float theta,int i){
 	return calculate(d,theta);
 }
 
+//return speed km/s
 float Motion_Controller::motor_linear_speed(){
 	//get the periods 
 	static unsigned long u1=wheels.get_motor1_freq();
@@ -152,8 +160,8 @@ float Motion_Controller::motor_linear_speed(){
 }
 
 void Motion_Controller::set_motor_linear_speed(float v1,float v2){
-	static float Tu1=2*M_PI/v1;
-	static float Tu2=2*M_PI/v2;
+	static float Tu1=2*M_PI*consts.radius/v1;
+	static float Tu2=2*M_PI*consts.radius/v2;
 	
 	static unsigned long u1=(unsigned long)((Tu1-consts.alpha1u1)/consts.alpha0u1);
 	static unsigned long u2=(unsigned long)((Tu2-consts.alpha1u2)/consts.alpha0u2);
@@ -169,8 +177,8 @@ void Motion_Controller::add_motor_speed(float dv){
 	static float Tu1=consts.alpha0u1*u1+consts.alpha1u1;
 	static float Tu2=consts.alpha0u2*u2+consts.alpha1u2;
 	//speeds
-	static float v1=2*M_PI/Tu1+dv;
-	static float v2=2*M_PI/Tu2+dv;
+	static float v1=2*M_PI*consts.radius/Tu1+dv;
+	static float v2=2*M_PI*consts.radius/Tu2+dv;
 	
 	//set the new speed
 	Tu1=2*M_PI/v1;
@@ -182,15 +190,21 @@ void Motion_Controller::add_motor_speed(float dv){
 	wheels.set_freqs(u1,u2);
 }
 
-//theta in radians, dist in micro meters
+//theta in radians, dist in meters, time in ms
 unsigned long Motion_Controller::calculate(float dist,float theta){
+	static float vt=motor_linear_speed();
+	
+	if(theta == M_PI/2){
+		set_motor_linear_speed(vt,vt);
+		return (unsigned long) dist/vt;
+	}
+	
 	static bool flag=theta > M_PI/2;
 	if(flag){
 		theta=M_PI-theta;
 	}
 	
-	static float dist_pp=sqrt(pow(consts.center_dist,2)+pow(dist,2)-2*dist*consts.center_dist*cos(theta));
-	static float vt=motor_linear_speed();
+	static float dist_pp=sqrt(pow(consts.center_dist,2)+pow(dist,2)-2*dist*consts.center_dist*cos(theta)); //meter
 	static unsigned long t=(dist_pp-theta*consts.radius)/vt;
 	static float vr=theta*consts.radius/t;
 	static float vm=vr+vt;

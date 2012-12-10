@@ -11,59 +11,52 @@ Measurements measurements;
 Wheels_Controller cntr; 
 Consts consts;
 
-unsigned long dt=10000L;
+unsigned long dt=60000L;
 unsigned long t0;
 unsigned long speed;
 struct pt prth;
+boolean flag[5];
 
 void setup(){
-    attachInterrupt(Measurements::CA1_INTERRUPT,channelA1,CHANGE);
+        delay(4000);
+        attachInterrupt(Measurements::CA1_INTERRUPT,channelA1,CHANGE);
 	attachInterrupt(Measurements::CA2_INTERRUPT,channelA2,CHANGE);
 	PT_INIT(&prth);
-	speed=200L;
-	Serial.print("v=");
-	Serial.println(speed);
-	
+
 	Serial.begin(9600);
-	cntr.start_moving(consts.FORWARD,speed,speed);
-	measurements.start_measuring();
+        for(int i=0;i<5;i++){
+           flag[i]=true; 
+        }
 	t0=millis();
+        measurements.start_measuring();      
 }
 
 
 void loop(){
-	cntr.schedule_wheel_motion();
-	set_new_speed_time(250L,1);
-	set_new_speed_time(300L,2);
-	
-	/* 
-	dont use many set_new_speed_time, it would decrease the speed
-	 set_new_speed_time(350L,1);
-	 set_new_speed_time(400L,2);
-	 set_new_speed_time(450L,1);
-	 set_new_speed_time(500L,2);
-	 set_new_speed_time(550L,1);
-	 set_new_speed_time(600L,2);
-	 set_new_speed_time(650L,1);
-	 set_new_speed_time(700L,2);
-	 set_new_speed_time(750L,1);
-	 set_new_speed_time(800L,2);
-	 set_new_speed_time(850L,1);
-	 set_new_speed_time(900L,2);
-	 set_new_speed_time(950L,1);
-	 set_new_speed_time(1000L,2);
-	*/
-	
+
+	set_new_speed_time(250L,0);
+        //dont use many set_new_speed_time, it would decrease the speed
+	//set_new_speed_time(300L,3);
+
+	stopM(1);
+	cntr.schedule_wheel_motion();	
 	pr_thread(&prth);
 }
 void set_new_speed_time(unsigned long speed, int tf){
-	if(millis()-t0>=tf*dt){
+	if(millis()-t0>=tf*dt && flag[tf]){
 		cntr.stop_moving();
 		Serial.print("v=");
 		Serial.println(speed);
 		cntr.start_moving(consts.FORWARD,speed,speed);
+                flag[tf]=false;
 	}
+}
 
+void stopM(int tf){
+   if(millis()-t0>=tf*dt && flag[tf]){
+	cntr.stop_moving(); 
+        flag[tf]=false;
+   }
 }
 
 static int pr_thread(struct pt* ptt){

@@ -41,7 +41,7 @@ class Motion_Controller{
 		static volatile int path_size;
 		static volatile int i;
 		
-		
+		static volatile bool speed_changed;
 		
 	public:
 		Motion_Controller();

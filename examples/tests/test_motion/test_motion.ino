@@ -24,8 +24,7 @@ void setup(){
 	cntr.dist_p[0]=3;
 	cntr.theta_p[1]=M_PI/8;
 	cntr.dist_p[1]=4;
-
-     //Serial.begin(9600);
+        cntr.path_activate=true;
 }
 
 
@@ -33,11 +32,6 @@ void loop(){
 	cntr.wheels.schedule_wheel_motion();
 	cntr.schedule_path();
 	cntr.schedule_speed_control();	
-	
-	//activate path traveling
-	if(millis()-t0>dt){
-		cntr.path_activate=true;
-	}
 }
 
 void channelA1(){

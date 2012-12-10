@@ -19,18 +19,22 @@ class Consts{
 		const static int MOTOR2_CHANNEL_A=3;       //YELLOW  
 		const static int MOTOR2_CHANNEL_B=45;       //WHITE
 		
-		const static float center_dist=0.1145;
-		const static float radius=0.054;
+		const static float center_dist=0.1145; // meters
+		const static float radius=0.054;       //meters
 		
-		//linear model param
-		const static float alpha0u1=0.00000486;
+	   //linear model param{
+		//motor1
 		const static float alpha1u1=0;
-	        const static float alpha0u2=0.00000486;
+		const static float alpha0u1=0.00000486;  //slope
+		//motor2
+		const static float alpha0u2=0.00000486;  //slope
 		const static float alpha1u2=0;
+	   //}
 		
 		int MOTOR_CHANNELS[4];
 		const static unsigned long PERIOD_CYCLE=1000L;
 		const static int NPPR=64;
+		const static unsigned long default_initial_speed=200L;
 		
 		const static int NUMBER_PARTITIONS_INTERVAL=1000;
 		const static int ULTRASONIC_SENSOR0=26;

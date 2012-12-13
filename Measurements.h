@@ -2,7 +2,7 @@
 #define Measurements_h
 
 #include "Arduino.h"
-#include <pt.h>
+#include <pt/pt.h>
 #include <Consts.h>
 
 //assume that edges are synchronized to the same number of counts. 

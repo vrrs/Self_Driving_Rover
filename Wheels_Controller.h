@@ -2,7 +2,7 @@
 #define Wheels_Controller_h
 
 #include "Arduino.h"
-#include <pt.h>
+#include <pt/pt.h>
 #include <Consts.h>
 
 class Wheels_Controller{

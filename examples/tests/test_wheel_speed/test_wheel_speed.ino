@@ -1,5 +1,5 @@
 #include <Measurements.h>
-#include <pt.h>
+#include <pt/pt.h>
 #include <Wheels_Controller.h>
 #include <Consts.h>
 
@@ -34,7 +34,7 @@ void setup(){
 
 void loop(){
 
-	set_new_speed_time(250L,0);
+	set_new_speed_time(900L,0);
         //dont use many set_new_speed_time, it would decrease the speed
 	//set_new_speed_time(300L,3);
 

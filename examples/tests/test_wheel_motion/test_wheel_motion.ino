@@ -1,5 +1,5 @@
 #include <Measurements.h>
-#include <pt.h>
+#include <pt/pt.h>
 #include <Wheels_Controller.h>
 #include <Consts.h>
 
@@ -46,11 +46,11 @@ void loop(){
 
 	//start turning after 20 s to the left
 	if(millis()-t0>20000 && flag[2]){
-		cntr.set_freqs(400L,500L);
+		cntr.set_freqs(400L,900L);
 		flag[2]=false;
 	}
 	//stop the car after 30 s
-	if(millis()-t0>30000){
+	if(millis()-t0>24000){
 		cntr.stop_moving();
 	}
 }

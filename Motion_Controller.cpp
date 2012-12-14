@@ -5,40 +5,90 @@
 
 volatile unsigned long     Motion_Controller::path_t;
 volatile unsigned long     Motion_Controller::t0;
+<<<<<<< HEAD
 volatile int               Motion_Controller::path_size;
 volatile int               Motion_Controller::i;
+=======
+
+volatile int               Motion_Controller::back;
+volatile int               Motion_Controller::front;
+volatile float             Motion_Controller::theta_p[capacity];
+volatile float             Motion_Controller::dist_p[capacity];
+
+>>>>>>> Fixed motion controller and pt lib
 Wheels_Controller          Motion_Controller::wheels;
+Consts                     Motion_Controller::consts;
+Measurements               Motion_Controller::measurements;
+
 struct pt                  Motion_Controller::ptPath;
 struct pt                  Motion_Controller::ptSpeed;
 struct pt                  Motion_Controller::ptAccelerate;
+<<<<<<< HEAD
 volatile float             Motion_Controller::theta_p[5];
 volatile float             Motion_Controller::dist_p[5];
+=======
+
+>>>>>>> Fixed motion controller and pt lib
 volatile float             Motion_Controller::dv;
 volatile unsigned long     Motion_Controller::dt;
 volatile unsigned long     Motion_Controller::tt0;
 volatile int               Motion_Controller::n;
+<<<<<<< HEAD
 Consts                     Motion_Controller::consts;
 Measurements               Motion_Controller::measurements;
 volatile bool 		   Motion_Controller::accelerate_activate;
 volatile bool 		   Motion_Controller::speed_changed;
+=======
+
+volatile bool 			   Motion_Controller::accelerate_activate;
+volatile bool 			   Motion_Controller::speed_changed;
+volatile bool 			   Motion_Controller::path_activate;
+>>>>>>> Fixed motion controller and pt lib
 
 Motion_Controller::Motion_Controller(){
 	PT_INIT(&ptPath);
 	PT_INIT(&ptSpeed);
 	PT_INIT(&ptAccelerate);
+<<<<<<< HEAD
 	path_size=5;
 	path_activate=false;
 	speed_control_activated=true;
 	wheels.set_freqs(consts.default_initial_speed,consts.default_initial_speed);
 	for(int i=0;i<path_size;i++){
+=======
+	
+	back=0;
+	front=0;
+	path_t=0L;
+	
+	path_activate=false;
+	speed_control_activated=false;
+	accelerate_activate=false;
+	speed_changed=false;
+	time_flag=true;
+	
+	wheels.set_freqs(consts.default_initial_speed,consts.default_initial_speed);
+	for(int i=0;i<capacity;i++){
+>>>>>>> Fixed motion controller and pt lib
 		theta_p[i]=0;
 		dist_p[i]=0;
 	}
-	
+}
+//start moving
+void Motion_Controller::move(bool regulate_speed){
+	speed_control_activated=regulate_speed;
+	wheels.MOVING=true;
+	path_activate=true;
+}
+//stop moving
+void Motion_Controller::stop(){
+	path_activate=false;
+	wheels.stop_moving();
 }
 
-
 //acceleration section {
+
+//new speed will be updated after current path ends.
 void Motion_Controller::accelerate(unsigned long t,float vf){
 	float v0=motor_linear_speed();
 	n=consts.NUMBER_PARTITIONS_INTERVAL;
@@ -110,8 +160,15 @@ int Motion_Controller::speed_control_thread(struct pt* ptt){
 //Assume that a speed>0 has been scheduled.
 void Motion_Controller::schedule_path(){
 	if(path_activate){
+<<<<<<< HEAD
 		t0=millis();
+=======
+>>>>>>> Fixed motion controller and pt lib
 		path_thread(&ptPath);
+	}
+	if(path_activate && time_flag){
+		t0=millis();
+		time_flag=false;
 	}
 }
 
@@ -122,6 +179,7 @@ int Motion_Controller::path_thread(struct pt* ptt){
 	while(1){
 		PT_WAIT_UNTIL(ptt,millis()-t0>=path_t && path_activate || speed_changed);
 		if(speed_changed){
+<<<<<<< HEAD
 			dist_set=dist_p[i]-motor_linear_speed()*(millis()-t0);
 			i--;
 			speed_changed=false;
@@ -142,6 +200,48 @@ int Motion_Controller::path_thread(struct pt* ptt){
 	}
 	PT_END(ptt);
 }
+=======
+			dist_set=dist_p[front]-motor_linear_speed()*(millis()-t0);
+			deltaFront(false); //decrease front
+			
+			speed_changed=false;
+		}
+		else{
+			dist_set=dist_p[front];
+		}
+		if(back==front){
+			stop();
+		}
+		else{
+			path_t=calculate(dist_set,theta_p[front]);
+			t0=millis();
+		}
+		deltaFront(true);//increase front
+	}
+	PT_END(ptt);
+}
+void  Motion_Controller::deltaFront(bool increment){
+	if(increment){
+		front=(front+1)%capacity;
+	}
+	else{	
+		front--;
+		if(front<0)
+			front=front+capacity;
+	}
+}
+
+bool  Motion_Controller::full(){
+  return size()==capacity;
+}
+
+int  Motion_Controller::size(){
+	static int siz=back-front+1;
+	if(front>back)
+		return siz+capacity;
+	return siz;
+}
+>>>>>>> Fixed motion controller and pt lib
 
 //return speed km/s
 float Motion_Controller::motor_linear_speed(){
@@ -184,8 +284,8 @@ void Motion_Controller::add_motor_speed(float dv){
 	static float v2=2*M_PI*consts.radius/Tu2+dv;
 	
 	//set the new speed
-	Tu1=2*M_PI/v1;
-	Tu2=2*M_PI/v2;
+	Tu1=2*M_PI*consts.radius/v1;
+	Tu2=2*M_PI*consts.radius/v2;
 	
 	u1=(unsigned long)((Tu1-consts.alpha1u1)/consts.alpha0u1);
 	u2=(unsigned long)((Tu2-consts.alpha1u2)/consts.alpha0u2);
@@ -193,6 +293,11 @@ void Motion_Controller::add_motor_speed(float dv){
 	wheels.set_freqs(u1,u2);
 }
 
+<<<<<<< HEAD
+=======
+
+
+>>>>>>> Fixed motion controller and pt lib
 //theta in radians, dist in meters, time in ms
 unsigned long Motion_Controller::calculate(float dist,float theta){
 	static float vt=motor_linear_speed();

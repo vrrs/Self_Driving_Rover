@@ -11,6 +11,7 @@ void setup(){
 	attachInterrupt(Measurements::CA1_INTERRUPT,channelA1,CHANGE);
 	attachInterrupt(Measurements::CA2_INTERRUPT,channelA2,CHANGE);
 
+<<<<<<< HEAD
       //set up path in polar coordinates
 	cntr.theta_p[0]=M_PI/2;
 	cntr.dist_p[0]=3;
@@ -24,11 +25,29 @@ void setup(){
         //cntr.measurements.start_measuring();
         t0=millis();
         flag=true;
+=======
+   //set up path in polar coordinates
+	cntr.theta_p[0]=M_PI/2;
+	cntr.dist_p[0]=3;
+	
+/*	
+    cntr.theta_p[1]=M_PI/4;
+	cntr.dist_p[1]=2;
+    cntr.theta_p[2]=M_PI/8;
+	cntr.dist_p[2]=4;
+*/
+  
+	//cntr.measurements.start_measuring();
+	t0=millis();
+    flag=true;
+	cntr.move(false);
+>>>>>>> Fixed motion controller and pt lib
 }
 
 
 void loop(){
 	cntr.wheels.schedule_wheel_motion();
+<<<<<<< HEAD
         cntr.measurements.schedule_sensors();
 	cntr.schedule_path();
 	cntr.schedule_speed_control();	
@@ -36,6 +55,18 @@ void loop(){
   cntr.path_activate=true;
  // flag=false;
 //}
+=======
+	
+//  cntr.measurements.schedule_sensors();
+	
+	cntr.schedule_path();
+	cntr.schedule_speed_control();	
+	
+	if (millis()-t0>dt && flag) {
+		cntr.stop();
+		flag=false;
+	}
+>>>>>>> Fixed motion controller and pt lib
 }
 
 void channelA1(){

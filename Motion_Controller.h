@@ -2,7 +2,7 @@
 #define Motion_Controller_h
 
 #include "Arduino.h"
-#include <pt.h>
+#include <pt/pt.h>
 #include <math.h>
 #include <Consts.h>
 #include <Measurements.h>
@@ -38,10 +38,24 @@ class Motion_Controller{
 		
 		static volatile bool accelerate_activate;
 		
+<<<<<<< HEAD
 		static volatile int path_size;
 		static volatile int i;
 		
 		static volatile bool speed_changed;
+=======
+		static volatile int back;
+		static volatile int front;
+		
+		static volatile bool speed_changed;
+		bool time_flag;
+		
+		//control flags. Fire up the controls.
+		static volatile bool path_activate;
+		bool speed_control_activated;
+		
+		static void deltaFront(bool increment);
+>>>>>>> Fixed motion controller and pt lib
 		
 	public:
 		Motion_Controller();
@@ -50,6 +64,7 @@ class Motion_Controller{
 		static Wheels_Controller wheels;
 		static Consts consts;
 		static Measurements measurements;
+<<<<<<< HEAD
 		
 		static volatile float theta_p[5];
 		static volatile float dist_p[5];
@@ -59,8 +74,20 @@ class Motion_Controller{
 		bool path_activate;
 		bool speed_control_activated;
 		
+=======
+		
+		static volatile float theta_p[capacity];
+		static volatile float dist_p[capacity];
+		static volatile unsigned long path_t;
+		
+		static int size();
+		static bool full();
+	
+>>>>>>> Fixed motion controller and pt lib
 		//operations on the motion
 		static void accelerate(unsigned long t,float vf);
+		void move(bool regulate_speed);
+		static void stop();
 		
 		//schedulers
 		void schedule_path();	

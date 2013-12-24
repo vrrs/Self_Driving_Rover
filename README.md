@@ -1,4 +1,4 @@
-Self_Driving_Rover
+Self Driving Rover
 ==================
 
 This is the software that power a small rover that consist of an arduino board, motor driver, two motors, wifi shield and GPS. 
